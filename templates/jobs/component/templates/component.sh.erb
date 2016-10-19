@@ -1,0 +1,66 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off $1 action for COMPONENT_NAME job with user: `whoami` "
+
+# If the vm got recreated or restarted, the /etc/hosts would have lost the changes
+sudo sed -i.bak "s/^127.0.0.1 localhost /127.0.0.1 localhost\n${LOCAL_HOST_IP} /1;s/^::1/#::1/" /etc/hosts
+sudo rm /etc/hosts.bak
+
+case $1 in
+
+  start)
+      log_debug "Starting {{component['name'] }} ..."
+
+      {% for sub_component in component['sub_components'] %}
+      #DEPENDENT_COMPONENTS_START_TAG
+      ${APIGEE_SERVICE} {{sub_component}} start
+      {% endfor %}
+
+      {% if 'monitoring' in product['enabled_groups'] %}
+      #if [ "${HAS_MONITORING}" == "true" ]; then
+          $APIGEE_SERVICE apigee-telegraf start
+      #fi
+      {% endif %}
+      ${APIGEE_SERVICE} {{component['name']}} start
+
+      # Copy over pid file from apigee location to bosh location with some delay
+      # There seemed to be some race condition in edge-router when start off the java process is slow or something 
+      # and bosh monit kicks off the restart very fast even as the apigee-service tries to bring up new instance
+      ${APIGEE_SERVICE} {{component['name']}} wait_for_ready
+      log_debug "Done with start of {{component['name']}}..."
+      #fi
+      ;;
+  stop)
+      log_debug "Stopping {{component['name']}}"
+
+      {% for sub_component in component['sub_components'] %}
+      #DEPENDENT_COMPONENTS_STOP_TAG
+      ${APIGEE_SERVICE} {{sub_component}} stop
+      {% endfor %}
+
+      ${APIGEE_SERVICE} {{component['name']}} stop
+
+      {% if 'monitoring' in product['enabled_groups'] %}
+      #if [ "${HAS_MONITORING}" == "true" ]; then
+          $APIGEE_SERVICE apigee-telegraf stop
+      #fi
+      {% endif %}
+
+      ${APIGEE_SERVICE} {{component['name']}} status
+      if [ $? -ne 0 ]; then
+         log_debug "apigee-service stopped {{component['name']}} successfully."
+      else
+         log_debug "ERROR: apigee-service did not stop {{component['name']}}."
+         ${APIGEE_SERVICE} {{component['name']}} kill
+         log_debug "Killed {{component['name']}} using apigee-service"
+      fi
+
+      ;;
+  *)
+    echo "Usage: $0 {start|stop}" ;;
+
+esac
+

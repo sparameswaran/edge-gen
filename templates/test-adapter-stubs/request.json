@@ -1,8 +1,0 @@
-{
-  "parameters" : {
-  	{% for vm in context['vms'] %}
-    	"{{ vm['nameInGo']}}_instances": {{ loop.index + 1}},
-    	"{{ vm['nameInGo']}}_route": "test-{{ vm['name_lower']}}-route"{% if  not loop.last %},{% endif %}
-    {% endfor %}
-  }
-}

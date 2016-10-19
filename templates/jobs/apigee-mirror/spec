@@ -1,0 +1,171 @@
+---
+name: apigee-mirror
+templates:
+  pre-start.erb: bin/pre-start
+  apigee-mirror.sh.erb: bin/run
+  init.sh.erb: bin/init.sh
+
+provides:
+# Use underscore instead of hypen for all names/variables
+- name: apigee-mirror
+  type: yum-repo
+  #Export properties via links to all consumers
+  properties:
+  - mirror_port
+  - mirror_username
+  - mirror_password
+  - bootstrap_version
+  - admin_email
+  - apigee_adminpw
+  - license_content
+  - ldap_type
+  - ldap_port
+  - use_ldap_remote_host
+  - apigee_ldappw
+  - bind_on_all_interfaces
+  - mp_pod
+  - region
+  - smtp.skip_smtp
+  - smtp.smtphost
+  - smtp.smtpuser
+  - smtp.smtppassword
+  - smtp.smtpssl
+  - smtp.smtpport
+  - global_config_overrides
+  - usergrid_clustername
+  - usergrid_port
+  - portal_port
+  - baas_admin_username
+  - baas_admin_email
+  - baas_admin_password
+  - cassandra_username
+  - cassandra_password
+  - grafana_admin_user
+  - grafana_admin_password
+  - influxdb_port
+  - pg_admin_user
+  - pg_admin_password
+  - pg_mint_user
+  - pg_mint_password
+  - mint_axgroup
+
+
+
+
+# mirror host has will be computed by other services using links
+
+packages:
+- apigee-mirror
+
+properties:
+  mirror_host:
+    description: 'Mirror host'
+  mirror_port:
+    description: 'Mirror port'
+    default: 3939
+  mirror_username:
+    default: 'admin'
+    description: 'Mirror Repo user'
+  mirror_password:
+    default: 'admin'
+    description: 'Mirror Repo password'
+  bootstrap_version:
+    description: 'Mirror bootstrap version'
+  admin_email:
+    default: 'admin@apigee.com'
+    description: 'test'
+  apigee_adminpw:
+    description: 'test'
+  license_content:
+    default: '#Sample Apigee license file content'
+    description: 'Apigee license file content'
+  ldap_type:
+    default: '2'
+    description: 'Ldap type 1 for single 2 for replication'
+  ldap_port:
+    default: '10389'
+    description: 'LDAP Default port'
+  use_ldap_remote_host:
+    default: 'n'
+    description: 'use ldap remote host'
+  apigee_ldappw:
+    default: 'secret'
+    description: 'LDAP password'
+  bind_on_all_interfaces:
+    default: 'y'
+    description: 'test'
+  mp_pod:
+    default: 'gateway'
+    description: 'MP Pod name'
+  region:
+    default: 'dc-1'
+    description: 'Apigee deployment region'
+  smtp.skip_smtp:
+    default: 'n'
+    description: 'Whether to skip SMTP setup'
+  smtp.smtphost:
+    default: 'smtp.example.com'
+    description: 'SMTP Host'
+  smtp.smtpuser:
+    default: 'smtp@example.com'
+    description: 'SMTP User'
+  smtp.smtppassword:
+    default: 'secret'
+    description: 'SMTP Password'
+  smtp.smtpssl:
+    default: 'n'
+    description: 'Whether to turn on SMTLP on SSL'
+  smtp.smtpport:
+    default: '25'
+    description: 'SMTP Port'
+  global_config_overrides:
+    description: 'Apigee Global Config override'
+    default: '#Sample Apigee global config overrides '
+  usergrid_clustername:
+    description: 'BaaS Usergrid Cluster Name'
+    default: 'apigee_baas'
+  usergrid_port:
+    description: 'BaaS Usergrid port'
+    default: '8080'
+  portal_port:
+    description: 'BaaS Portal port'
+    default: '9000'
+  baas_admin_username:
+    description: 'BaaS Admin Username'
+    default: 'superuser'
+  baas_admin_email:
+    description: 'BaaS Admin Email'
+    default: 'baasadmin@example.com'
+  baas_admin_password:
+    description: 'BaaS Admin Password'
+    default: 'secret'
+  cassandra_username:
+    description: 'Cassandra Username'
+    default: 'cassandra'
+  cassandra_password:
+    description: 'Cassandra Password'
+    default: 'cassandra'
+  grafana_admin_user:
+    description: 'Grafana Admin User'
+    default: 'admin'
+  grafana_admin_password:
+    description: 'Grafana Admin Password'
+    default: 'secret'
+  influxdb_port:
+    description: 'InfluxDB Port'
+    default: '8086'
+  pg_admin_user:
+    description: 'Postgres Admin User'
+    default: 'apigee'
+  pg_admin_password:
+    description: 'Postgres Admin Password'
+    default: 'postgres'
+  pg_mint_user:
+    description: 'Postgres Mint User'
+    default: 'postgres'
+  pg_mint_password:
+    description: 'Postgres Mint Password'
+    default: 'postgres'
+  mint_axgroup:
+    description: 'Mint AX group'
+    default: 'mxmint'

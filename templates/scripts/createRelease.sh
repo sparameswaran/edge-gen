@@ -19,8 +19,8 @@ fi
 
 RELEASE_DIR=$(realpath $1)
 
-PRODUCT_NAME={{product['name']}}
-RELEASE_NAME={{product['name']}}-release
+PRODUCT_NAME={{product['short_name']}}
+RELEASE_NAME={{product['short_name']}}-release
 SERVICE_ADAPTER_RELEASE_VERSION={{version}}
 
 cd $RELEASE_DIR

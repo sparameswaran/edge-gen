@@ -1,0 +1,80 @@
+---
+name:  {{component['name']}}
+templates:
+  init.sh.erb: bin/init.sh
+  pre-start.erb: bin/pre-start
+  drain.erb: bin/drain
+  silent.conf.erb: config/silent.conf
+  apigee-license.txt.erb: config/conf/apigee-license.txt
+  #DEPENDENT_COMPONENTS_SPEC_ERB_TAG
+
+{% for sub_component in component['sub_components'] %}
+  {{sub_component}}.properties.erb: config/application/{{sub_component.replace('edge-','').replace('apigee-','').replace('baas-','')}}.properties
+{% endfor %}
+  {{component['name']}}.properties.erb: config/application/{{ component['service_type'] }}.properties
+  default.properties.erb: config/default.properties
+  {{component['name']}}.sh.erb: bin/run
+
+consumes:
+- name: apigee-mirror
+  type: yum-repo
+
+- name: zookeeper
+  type: zookeeper
+
+- name: cassandra
+  type: cassandra
+
+- name: management-server
+  type: management-server
+
+- name: postgres-server
+  type: postgres-server
+
+- name: qpid-server
+  type: qpid-server
+
+- name: portal
+  type: portal
+
+- name: usergrid
+  type: usergrid
+
+- name: elasticsearch
+  type: elasticsearch
+
+- name: influxdb
+  type: influxdb
+
+provides:
+- name: {{ component['service_name'] }}
+  type: {{ component['service_type'] }}
+
+packages:
+- component
+
+properties:
+  component.name:
+    description: 'Apigee service component name'
+    default: {{component['name']}}
+  component.server_type:
+    description: 'Apigee service component server type'
+    default: {{ component['service_type'] }}
+#  component.profile:
+#    description: 'Component setup profile'
+  #DEPENDENT_COMPONENTS_SPEC_TAG
+{% for sub_component in component['sub_components'] %}
+  component.{{component['name']}}_{{sub_component}}_config_overrides:    
+  	default: '#Dummy Application config override '
+  	description: 'Apigee Application config override'
+{% endfor %}
+
+  component.{{component['name']}}_application_config_overrides:
+    default: '#Dummy Application config override '
+    description: 'Apigee Application config override'
+  install_monetization:
+    default: false
+    description: 'Apigee Monetization Enabled?'
+  install_monitoring:
+    default: false
+    description: 'Apigee Monitoring Enabled?'

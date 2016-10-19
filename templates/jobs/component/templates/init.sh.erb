@@ -1,0 +1,86 @@
+#!/bin/bash
+export APIGEE_ROOT=/opt/apigee
+APIGEE_SERVICE=${APIGEE_ROOT}/apigee-service/bin/apigee-service
+set +e -x
+
+<%
+  def discover_external_ip
+    networks = spec.networks.marshal_dump
+    _, network = networks.find do |_name, network_spec|
+      network_spec.default
+    end
+    if !network
+      _, network = networks.first
+    end
+    if !network
+      raise "Could not determine IP via network spec: #{networks}"
+    end
+    network.ip
+  end
+  my_ip = discover_external_ip
+%>
+
+<%
+  def discover_yum_server
+    yum_repo_server = ""
+    if_link("apigee-mirror") do |yum_repo_servers|
+       yum_repo_servers.instances.map do |instance|
+         yum_repo_server = yum_repo_server + instance.address + " "
+       end
+    end
+    yum_repo_server.strip!
+  end
+  apigee_mirror_server = discover_yum_server
+%>
+
+
+# Not relying on network name to arrive at hostip
+# Set the ip to HOSTNAME to avoid listener getting bound to some internal only hostname
+<% apigee_mirror = link('apigee-mirror') %>
+
+export LOCAL_HOST_IP=<%= my_ip %>
+export COMPONENT_NAME=<%= properties.component.name %>
+export COMPONENT_SERVER_TYPE=<%= properties.component.server_type %>
+export HAS_MONETIZATION=<%= properties.install_monetization %>
+export HAS_MONITORING=<%= properties.install_monitoring %>
+export MIRROR_HOST=<%= apigee_mirror_server %>
+export MIRROR_PORT=<%= link('apigee-mirror').p('mirror_port') %>
+export MIRROR_USERNAME=<%= link('apigee-mirror').p('mirror_username') %>
+export MIRROR_PASSWORD=<%= link('apigee-mirror').p('mirror_password') %>
+export BOOTSTRAP_VERSION=<%= link('apigee-mirror').p('bootstrap_version') %>
+
+export RUN_DIR=/var/vcap/sys/run
+export LOG_DIR=/var/vcap/sys/log/{{ component['name'] }}
+export DEBUG_LOG=$LOG_DIR/{{ component['name'] }}.log
+
+mkdir -p $RUN_DIR $LOG_DIR
+chown -R vcap:vcap $RUN_DIR $LOG_DIR
+
+chmod -R 777 /var/vcap/sys/log
+touch $DEBUG_LOG
+chmod 777 $DEBUG_LOG
+
+# Create ${rpm_user}
+mkdir -p ${APIGEE_ROOT}
+APIGEE_DATA=${APIGEE_ROOT}/data
+
+RUN_USER=apigee
+RUN_GROUP=apigee
+getent group ${RUN_GROUP} >/dev/null || groupadd -r ${RUN_GROUP}
+getent passwd ${RUN_USER} >/dev/null || \
+useradd -r -g ${RUN_GROUP} -d ${APIGEE_ROOT} -s /sbin/nologin \
+-c "Apigee platform user" ${RUN_USER}
+chown ${RUN_USER}:${RUN_GROUP} ${APIGEE_ROOT}
+
+[ -d /var/vcap/store/apigee_data ] || mkdir -p /var/vcap/store/apigee_data
+[ -L ${APIGEE_DATA} ] || ln -s /var/vcap/store/apigee_data ${APIGEE_DATA}
+[ -L /var/vcap/sys/log/{{ component['name'] }}/apigee_log ] || ln -s ${APIGEE_ROOT}/var/log /var/vcap/sys/log/{{ component['name'] }}/apigee_log
+
+sudo sed -i.bak "s/^127.0.0.1 localhost /127.0.0.1 localhost\n${LOCAL_HOST_IP} /1;s/^::1/#::1/" /etc/hosts
+sudo rm /etc/hosts.bak
+
+function log_debug() {
+  echo `date` $1 >> $DEBUG_LOG
+}
+
+

@@ -1,0 +1,63 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off ${COMPONENT_NAME} pre-start script as `whoami` on ${LOCAL_HOST_IP}"
+
+#Extract java
+if [ -d /opt/java ]; then
+   echo "Java already exists, skipping";
+else
+   mkdir -p /opt/java && cd /opt/java
+   tar -zxf /var/vcap/packages/component/openjdk-1.8.0_91.tar.gz
+fi
+
+echo 'export JAVA_HOME=/opt/java' > /etc/profile.d/java.sh
+echo 'export PATH=$PATH:$JAVA_HOME/bin' >> /etc/profile.d/java.sh
+source /etc/profile.d/java.sh
+
+
+mkdir -p /var/vcap/store/apigee/tmp/yum
+export TMPDIR=/var/vcap/store/apigee/tmp
+if [[ ! -L /var/cache/yum && -d /var/cache/yum ]]; then
+  rm -rf /var/cache/yum
+  ln -s  /var/vcap/store/apigee/tmp/yum /var/cache
+fi
+
+if [ ! -d /opt/apigee/apigee-mirror ]; then
+   mkdir -p /opt/apigee/data/apigee-mirror
+fi
+
+MIRROR_HOST_ADDRESS=${MIRROR_HOST}:${MIRROR_PORT}
+curl http://${MIRROR_HOST_ADDRESS}/bootstrap_${BOOTSTRAP_VERSION}.sh -o /tmp/bootstrap_${BOOTSTRAP_VERSION}.sh -u ${MIRROR_USERNAME}:${MIRROR_PASSWORD}
+
+sudo yum-config-manager --disable \*
+sudo yum-config-manager --enable base updates
+bash /tmp/bootstrap_${BOOTSTRAP_VERSION}.sh apigeeuser=${MIRROR_USERNAME} apigeepassword=${MIRROR_PASSWORD} apigeerepohost=${MIRROR_HOST_ADDRESS} apigeeprotocol=http:// apigeestage={T}templates_apigeestage{/T}
+
+COUNTER=1
+INSTALL_STATUS=1
+while [ $COUNTER -lt 3  -a "$INSTALL_STATUS" != "0" ]; do
+  if [ "${INSTALL_STATUS}" != "0" ]; then
+    /opt/apigee/apigee-service/bin/apigee-service apigee-setup install
+    INSTALL_STATUS=$?
+    let COUNTER=COUNTER+1
+  fi
+done
+
+
+sudo chmod 777 /tmp /var/tmp
+sudo chown -R apigee:apigee /opt /var/vcap/store/apigee
+
+COUNTER=1
+INSTALL_STATUS=1
+while [ $COUNTER -lt 3  -a "$INSTALL_STATUS" != "0" ]; do
+  if [ "${INSTALL_STATUS}" != "0" ]; then
+    /opt/apigee/apigee-service/bin/apigee-service apigee-validate install
+    INSTALL_STATUS=$?
+    let COUNTER=COUNTER+1
+  fi
+done
+
+exit $INSTALL_STATUS

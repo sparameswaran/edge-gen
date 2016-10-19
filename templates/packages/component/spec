@@ -1,0 +1,7 @@
+---
+name: component
+
+dependencies:
+
+files:
+- openjdk/openjdk-{{product['openjdk_version']}}.tar.gz

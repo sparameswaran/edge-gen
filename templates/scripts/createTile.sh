@@ -27,9 +27,8 @@ TEMPLATES_DIR=$ROOT_DIR/tile-templates
 
 PRODUCT_NAME={{product['name']}}
 PRODUCT_VERSION={{version}}
-RELEASE_NAME={{product['name']}}-release
-SERVICE_ADAPTER_RELEASE_VERSION={{version}}
-ON_DEMAND_BROKER_RELEASE_VERSION={{odb_release['version']}}
+RELEASE_NAME={{product['release_name']}}
+RELEASE_VERSION={{version}}
 
 $SCRIPT_DIR/createRelease.sh $RELEASE_DIR 
 
@@ -46,28 +45,7 @@ migrations_timestamp=`date +"%Y%m%d%H%M"`
 
 cp $TEMPLATES_DIR/*migration.js migrations/v1/${migrations_timestamp}_migration.js
 cp $TILE_FILE_FULL_PATH metadata/$TILE_FILE_NAME
-
 cp $RELEASE_TARFILE releases/
-
-if [ !  -e {{ root_dir }}/{{odb_release['file']}} ]; then
-  echo "Missing on-demand-rboker : {{ root_dir }}/{{odb_release['file']}}"
-  echo "Exiting..."
-  exit -1
-fi
-
-
-
-cp {{ root_dir }}/{{odb_release['file']}} releases/
-{% for managed_service_release in context['managed_services_releases'] %}
-if [ ! -e {{ root_dir }}/{{managed_service_release['release_file']}} ]; then
-  echo "Missing base bosh release impl : {{ root_dir }}/{{managed_service_release['file']}}"
-  echo "Exiting..."
-  exit -1
-fi
-cp {{ root_dir }}/{{managed_service_release['release_file']}} releases/
-{% endfor %}  
-
-
 
 # Ignore bundling the stemcell as most often the Ops Mgr carries the stemcell.
 # If Ops Mgr complains of missing stemcell, change the version specified inside the tile to the one that Ops mgr knows about

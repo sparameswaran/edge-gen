@@ -1,0 +1,109 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off {{component['name'] }} pre-start script as `whoami` on ${LOCAL_HOST_IP}"
+
+#Extract java
+if [ -d /opt/java ]; then
+   echo "Java already exists, skipping";
+else
+   mkdir -p /opt/java && cd /opt/java
+   tar -zxf /var/vcap/packages/component/openjdk-1.8.0_91.tar.gz
+fi
+
+echo 'export JAVA_HOME=/opt/java' > /etc/profile.d/java.sh
+echo 'export PATH=$PATH:$JAVA_HOME/bin' >> /etc/profile.d/java.sh
+source /etc/profile.d/java.sh
+
+mkdir -p /var/vcap/store/apigee/tmp/yum
+export TMPDIR=/var/vcap/store/apigee/tmp
+if [[ ! -L /var/cache/yum && -d /var/cache/yum ]]; then
+  rm -rf /var/cache/yum
+  ln -s  /var/vcap/store/apigee/tmp/yum /var/cache
+fi
+
+if [ ! -d /opt/apigee/data/apigee-mirror ]; then
+   mkdir -p /opt/apigee/data/apigee-mirror
+fi
+
+MIRROR_HOST_ADDRESS=${MIRROR_HOST}:${MIRROR_PORT}
+
+cd ${APIGEE_ROOT}
+curl http://${MIRROR_HOST_ADDRESS}/bootstrap_${BOOTSTRAP_VERSION}.sh -o /tmp/bootstrap_${BOOTSTRAP_VERSION}.sh -u ${MIRROR_USERNAME}:${MIRROR_PASSWORD}
+sudo yum-config-manager --disable \*
+sudo yum-config-manager --enable base updates
+bash /tmp/bootstrap_${BOOTSTRAP_VERSION}.sh apigeeuser=${MIRROR_USERNAME} apigeepassword=${MIRROR_PASSWORD} apigeerepohost=${MIRROR_HOST_ADDRESS} apigeeprotocol=http:// apigeestage={T}templates_apigeestage{/T}
+
+[ -L ${APIGEE_ROOT}/customer ] || (rm -rf ${APIGEE_ROOT}/customer && ln -s /var/vcap/jobs/{{component['name'] }}/config ${APIGEE_ROOT}/customer && chown -R $RUN_USER:$RUN_GROUP ${APIGEE_ROOT}/customer/)
+
+# THESE ARE COMMENTED OFFF
+##sudo yum-config-manager --disable base
+##sudo yum-config-manager --enable apigee
+
+COUNTER=1
+INSTALL_STATUS=1
+while [ $COUNTER -lt 4  -a "$INSTALL_STATUS" != "0" ]; do
+  if [ "${INSTALL_STATUS}" != "0" ]; then
+    $APIGEE_SERVICE apigee-setup install
+    INSTALL_STATUS=$?
+    let COUNTER=COUNTER+1
+  fi
+done
+
+{% if component['name'] == 'edge-router' %}
+# Special case for edge-router
+#if [ "${COMPONENT_NAME}" == "edge-router" ]; then
+  mkdir -p /opt/apigee/etc/edge-router.d
+  echo "RUN_USER=root" >  /opt/apigee/etc/edge-router.d/RUN_USER.sh 
+  chmod +x /opt/apigee/etc/edge-router.d/RUN_USER.sh
+#fi
+{% endif %}
+
+sudo chmod 777 /tmp /var/tmp
+sudo chown -R apigee:apigee /opt /var/vcap/store/apigee
+
+{% if component['name'] == 'baas-usergrid' %}
+#TODO: baas hack
+#if [ ${COMPONENT_NAME} == "baas-usergrid" ]; then
+sed -i "s/:1,us-west-1c//g" /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+#fi
+{% endif %}
+
+/opt/apigee/apigee-setup/bin/setup.sh -p {{ component['profile'] }} -f /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+
+{% if component['name'] == 'edge-postgres-server' %}
+#Setup postgres replication
+#if [ "${COMPONENT_NAME}" == "edge-postgres-server" ]; then
+  if [ "${PG_MASTER}" == "${HOSTIP}" ]; then
+    $APIGEE-SERVICE apigee-postgresql setup-replication-on-master -f /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+  elif [ "${PG_STANDBY}" == "${HOSTIP}" ]; then
+    $APIGEE-SERVICE apigee-postgresql setup-replication-on-standby -f /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+  else
+    echo "ERROR: Invalid postgres-server (neither master nor standby) found."
+  fi
+#fi
+{% endif %}
+
+{% if 'monetization' in product['enabled_groups'] %}
+#if [ "${HAS_MONETIZATION}" == "true" ]; then
+    #if [ ${COMPONENT_NAME} == "edge-message-processor" ] || [ ${COMPONENT_NAME} == "edge-management-server" ]; then
+    {% if component['name'] == 'edge-message-processor' or component['name'] == 'edge-management-server' %}
+/opt/apigee/apigee-setup/bin/setup.sh -p mo -f /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+    #fi
+    {% endif %}
+#fi
+{% endif %}
+
+{% if 'monitoring' in product['enabled_groups'] %}
+#if [ "${HAS_MONITORING}" == "true" ]; then
+$APIGEE_SERVICE apigee-telegraf install
+$APIGEE_SERVICE apigee-telegraf setup -f /var/vcap/jobs/{{component['name'] }}/config/silent.conf
+$APIGEE_SERVICE apigee-telegraf start
+#fi
+{% endif %}
+
+SETUP_STATUS=$?
+
+exit $SETUP_STATUS

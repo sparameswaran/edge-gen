@@ -1,0 +1,17 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off ${COMPONENT_NAME} ctl script as `whoami` "
+
+APIGEE_SERVICE=/opt/apigee/apigee-service/bin/apigee-service
+
+log_debug "Kicking off setup for ${COMPONENT_NAME} ... "
+${APIGEE_SERVICE} apigee-validate setup -f /var/vcap/jobs/${COMPONENT_NAME}/config/silent.conf
+STATUS=$?
+log_debug "Status of ${COMPONENT_NAME} : $STATUS"
+
+#log_debug "Kicking off clean for ${COMPONENT_NAME} ..."
+#echo y | ${APIGEE_SERVICE} apigee-validate clean -f /var/vcap/jobs/${COMPONENT_NAME}/config/silent.conf
+log_debug "Done with ${COMPONENT_NAME} ..."

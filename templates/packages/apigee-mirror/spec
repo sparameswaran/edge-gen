@@ -1,0 +1,8 @@
+---
+name: apigee-mirror
+
+dependencies:
+
+files:
+- apigee_repo/apigee.tar.gz
+- openjdk/openjdk-{{product['openjdk_version']}}.tar.gz

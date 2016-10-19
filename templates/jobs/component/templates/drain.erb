@@ -1,0 +1,21 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off {{ component['name']}} drain script as `whoami` on ${LOCAL_HOST_IP}"
+
+# Special case for edge-router and edge-message-processor
+SETUP_STATUS=1
+
+{% if component['name'] == 'edge-message-processor' %}
+#if [ "${COMPONENT_NAME}" == "edge-message-processor" ]; then
+  #TODO: Loop through orgs and then envs
+  LOG_FILE=/var/vcap/sys/log/{{ component['name'] }}/pre-start.stdout.log
+  . /var/vcap/jobs/{{ component['name'] }}/config/silent.conf
+  curl -s -u "${ADMIN_EMAIL}:${APIGEE_ADMINPW}" -X POST http://${MSIP}:8080/v1/o/VALIDATE/e/test/servers -d "uuid=$(basename $(find /opt/apigee/data/{{ component['name'] }}/* -maxdepth 0 -type d))&region=${REGION}&pod=${MP_POD}&action=remove" 2>&1 >> $LOG_FILE
+  SETUP_STATUS=$?
+#fi
+{% endif %}
+echo $SETUP_STATUS
+exit $SETUP_STATUS

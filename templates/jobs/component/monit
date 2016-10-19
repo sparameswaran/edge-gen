@@ -1,0 +1,18 @@
+check process {{component['name']}}
+  with pidfile /opt/apigee/var/run/{{component['name']}}/{{component['name']}}.pid
+  start program "/var/vcap/jobs/{{component['name']}}/bin/run start"
+    with timeout 300 seconds
+  stop program "/var/vcap/jobs/{{component['name']}}/bin/run stop"
+    with timeout 100 seconds
+  group vcap
+
+{% for sub_component in component['sub_components'] %}
+check process {{sub_component}}
+  with pidfile /opt/apigee/var/run/{{sub_component}}/{{sub_component}}.pid
+  start program "/opt/apigee/apigee-service/bin/apigee-service {{sub_component}} start"
+    with timeout 300 seconds
+  stop program "/opt/apigee/apigee-service/bin/apigee-service {{sub_component}} stop"
+    with timeout 100 seconds
+  group vcap
+
+{% endfor %}

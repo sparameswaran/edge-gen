@@ -1,0 +1,24 @@
+#!/bin/bash
+
+SCRIPT_DIR=$(dirname $0)
+. $SCRIPT_DIR/init.sh
+
+log_debug "Kicking off Apigee Mirror as `whoami` wth arg: $1"
+
+#Execute setup steps here. Make sure they are idompotent.
+
+case $1 in
+
+  start)
+      /opt/nginx/scripts/apigee-nginx start
+      echo "Nginx for Apigee Mirror started successfully";;
+  stop)
+      #TODO: Debug this /opt/nginx/scripts/apigee-nginx stop
+      pkill -f nginx
+      echo "Nginx for Apigee Mirror stopped successfully";;
+  *)
+    echo "Usage: $0 {start|stop}" ;;
+
+esac
+
+

@@ -1,0 +1,7 @@
+check process apigee-mirror
+  with pidfile /opt/nginx/logs/nginx.pid
+  start program "/var/vcap/jobs/apigee-mirror/bin/run start"
+    with timeout 100 seconds
+  stop program "/var/vcap/jobs/apigee-mirror/bin/run stop"
+    with timeout 100 seconds
+  group vcap

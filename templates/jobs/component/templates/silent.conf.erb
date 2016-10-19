@@ -1,0 +1,268 @@
+<%
+  def discover_external_ip
+    networks = spec.networks.marshal_dump
+    _, network = networks.find do |_name, network_spec|
+      network_spec.default
+    end
+    if !network
+      _, network = networks.first
+    end
+    if !network
+      raise "Could not determine IP via network spec: #{networks}"
+    end
+    network.ip
+  end
+  my_ip = discover_external_ip
+%>
+
+<%
+ def remove_value_from_list(list, val)
+   list.gsub(val, "").gsub("  ", " ").strip
+ end
+%>
+
+<%
+  def discover_yum_server
+    yum_repo_server = " "
+    if_link("apigee-mirror") do |yum_repo_servers|
+       yum_repo_servers.instances.map do |instance|
+         yum_repo_server = yum_repo_server + instance.address + " "
+       end
+    end
+    yum_repo_server.strip
+  end
+  yum_repo_servers = discover_yum_server
+%>
+
+# return just first ip
+<%
+  def discover_management_server
+    managed_server_ip = ""
+    if_link("management-server") do |management_server_instances|
+       managed_server_ip = management_server_instances.instances[0].address
+    end
+    managed_server_ip
+  end
+  management_server_ips = discover_management_server
+%>
+
+# return peer mgmt IP
+<%
+  def discover_peer_management_server(localip)
+
+    managed_server_peer_ip = ""
+
+    if_link("management-server") do |management_server_instances|
+      management_server_instances.instances.map do |instance|
+        if(instance.address != localip)
+          managed_server_peer_ip = instance.address
+        end
+      end
+    end
+    managed_server_peer_ip
+  end
+  management_server_peer_ip = discover_peer_management_server(my_ip)
+%>
+
+<%
+  def discover_zookeeper
+    zookeeper_server_ip = " "
+    if_link("zookeeper") do |zookeeper_instances|  
+      zookeeper_instances.instances.map do |instance|  
+       zookeeper_server_ip = zookeeper_server_ip + instance.address + " "
+      end
+    end
+    zookeeper_server_ip.strip
+  end
+  zookeeper_server_ips = discover_zookeeper
+%>
+
+<%
+def discover_cassandra
+   cassandra_server_ip = " "
+   instances = 0
+   if_link("cassandra") do |cassandra_instances|
+
+     cassandra_instances.instances.map do |instance|
+      cassandra_server_ip = cassandra_server_ip + instance.address + ":1," + instance.az + " "
+      instances = instances + 1
+     end
+     if instances > 3
+       instances = 3
+     end
+   end
+   return cassandra_server_ip.strip, instances
+ end
+  cassandra_server_ips, cassandra_instance_count = discover_cassandra
+%>
+
+<%
+  def discover_elasticsearch
+    elasticsearch_server_ip = " "
+    if_link("elasticsearch") do |elasticsearch_instances|
+      elasticsearch_instances.instances.map do |instance|
+       elasticsearch_server_ip = elasticsearch_server_ip + instance.address + " "
+      end
+    end
+    elasticsearch_server_ip.strip
+  end
+  elasticsearch_server_ips = discover_elasticsearch
+%>
+# return just first ip
+<%
+  def discover_influxdb
+    influxdb_ip = ""
+    if_link("influxdb") do |influxdb_instances|
+      influxdb_instances.instances.map do |instance|
+       influxdb_ip = instance.address
+       break
+      end
+    end
+    influxdb_ip
+  end
+  influxdb_ips = discover_influxdb
+%>
+# return just first ip
+<%
+  def discover_postgres_server_master
+    postgres_server_ip = ""
+    if_link("postgres-server") do |postgres_server_instances|
+      postgres_server_instances.instances.map do |instance|
+       postgres_server_ip = instance.address
+       break
+      end
+    end
+    postgres_server_ip
+  end
+  postgres_server_master_ip = discover_postgres_server_master
+%>
+# return just last ip
+<%
+  def discover_postgres_server_standby
+    postgres_server_ip = ""
+    if_link("postgres-server") do |postgres_server_instances|
+      postgres_server_instances.instances.map do |instance|
+       postgres_server_ip = instance.address
+      end
+    end
+    postgres_server_ip
+  end
+  postgres_server_standby_ip = discover_postgres_server_standby
+%>
+# return just first ip
+<%
+  def discover_qpid_server
+    qpid_server_ip = ""
+    if_link("qpid-server") do |qpid_server_instances|
+      qpid_server_instances.instances.map do |instance|
+       qpid_server_ip = instance.address
+       break
+      end
+    end
+    qpid_server_ip
+  end
+  qpid_server_ips = discover_qpid_server
+%>
+# return just first ip
+<%
+  def discover_usergrid
+    usergrid_ip = ""
+    if_link("usergrid") do |usergrid_instances|
+      usergrid_instances.instances.map do |instance|
+       usergrid_ip = instance.address
+       break
+      end
+    end
+    usergrid_ip
+  end
+  usergrid_ips = discover_usergrid
+%>
+# return just first ip
+<%
+  def discover_portal
+    portal_ip = ""
+    if_link("portal") do |portal_instances|
+      portal_instances.instances.map do |instance|
+       portal_ip = instance.address
+       break
+      end
+    end
+    portal_ip
+  end
+  portal_ips = discover_portal
+%>
+
+<%
+  def check_smtp_ssl
+    value = 'n'
+    smtp_ssl = link("apigee-mirror").p("smtp.smtpssl")
+    value = 'y' if smtp_ssl 
+    value
+  end
+  smtpssl = check_smtp_ssl
+%>
+
+HOSTIP="<%= my_ip %>"
+MSIP="<%= management_server_ips %>"
+ZK_HOSTS="<%= zookeeper_server_ips %>"
+ZK_CLIENT_HOSTS="<%= zookeeper_server_ips %>"
+CASS_HOSTS="<%= cassandra_server_ips %>"
+ADMIN_EMAIL=<%= link('apigee-mirror').p('admin_email')%>
+LDAP_TYPE=<%= link('apigee-mirror').p('ldap_type') %>
+LDAP_SID=<%= (spec.index + 1) %>
+#Only run schema creation on the first mgmt server. It's unnecessary and takes lot of time on others.
+((<%= spec.index %>)) && MS_SCHEMA_SKIP=y || MS_SCHEMA_SKIP=n
+LDAP_PEER=<%= management_server_peer_ip %>
+#USE_LDAP_REMOTE_HOST=<%= link('apigee-mirror').p('use_ldap_remote_host') %>
+LDAP_HOST=${HOSTIP}
+LDAP_PORT=<%= link('apigee-mirror').p('ldap_port') %>
+BIND_ON_ALL_INTERFACES=<%= link('apigee-mirror').p('bind_on_all_interfaces') %>
+MP_POD=<%= link('apigee-mirror').p('mp_pod') %>
+REGION=<%= link('apigee-mirror').p('region') %>
+SKIP_SMTP=<%= link('apigee-mirror').p('smtp.skip_smtp') %>
+SMTPHOST=<%= link('apigee-mirror').p('smtp.smtphost') %>
+SMTPUSER=<%= link('apigee-mirror').p('smtp.smtpuser') %>
+SMTPSSL=<%= smtpssl %>
+SMTPPORT=<%= link('apigee-mirror').p('smtp.smtpport') %>
+LICENSE_FILE=/var/vcap/jobs/{{component['name']}}/config/conf/apigee-license.txt
+
+
+ES_HOSTS="<%= elasticsearch_server_ips %>"
+BAAS_CASS_LOCALDC=$REGION
+BAAS_CASS_REPLICATION=$REGION:<%= cassandra_instance_count %>
+BAAS_USERGRID_CLUSTERNAME=<%= link('apigee-mirror').p('usergrid_clustername') %>
+BAAS_USERGRID_URL=http://<%= usergrid_ips %>:<%= link('apigee-mirror').p('usergrid_port') %>
+BAAS_PORTAL_LISTEN_PORT=<%= link('apigee-mirror').p('portal_port') %>
+BAAS_PORTAL_URL=http://<%= portal_ips %>:$BAAS_PORTAL_LISTEN_PORT
+AS_ADMIN=<%= link('apigee-mirror').p('baas_admin_username')%>
+AS_ADMIN_EMAIL=<%= link('apigee-mirror').p('baas_admin_email')%>
+CASS_USERNAME=<%= link('apigee-mirror').p('cassandra_username')%>
+
+PG_USER=<%= link('apigee-mirror').p('pg_admin_user') %>
+PG_MASTER="<%= postgres_server_master_ip %>"
+PG_STANDBY="<%= postgres_server_standby_ip %>"
+MO_PG_HOST="<%= postgres_server_master_ip %>"
+MO_PG_USER=<%= link('apigee-mirror').p('pg_mint_user') %>
+QPID_HOST="<%= qpid_server_ips %>"
+ORG_NAME=VALIDATE
+MX_GROUP=<%= link('apigee-mirror').p('mint_axgroup') %>
+
+GRAFANA_USERNAME=<%= link('apigee-mirror').p('grafana_admin_user') %>
+INFLUXDB_HOST="<%= influxdb_ips %>"
+INFLUXDB_PORT=<%= link('apigee-mirror').p('influxdb_port') %>
+INFLUXDB_URL=http://${INFLUXDB_HOST}:${INFLUXDB_PORT}
+
+#Sensitive info
+<% if p('component.name') == 'edge-management-server' %>
+APIGEE_ADMINPW=<%= link('apigee-mirror').p('apigee_adminpw') %>
+SMTPPASSWORD=<%= link('apigee-mirror').p('smtp.smtppassword') %>
+MO_PG_PASSWD=<%= link('apigee-mirror').p('pg_mint_password') %>
+APIGEE_LDAPPW=<%= link('apigee-mirror').p('apigee_ldappw') %>
+<% elsif p('component.name') == 'baas-usergrid' %>
+AS_PASSWD=<%= link('apigee-mirror').p('baas_admin_password')%>
+<% elsif p('component.name') == 'edge-postgres-server' %>
+PG_PWD=<%= link('apigee-mirror').p('pg_admin_password') %>
+<% elsif p('component.name') == 'apigee-influxdb' %>
+GRAFANA_PASSWORD=<%= link('apigee-mirror').p('grafana_admin_password') %>
+<% end %>
+CASS_PASSWORD=<%= link('apigee-mirror').p('cassandra_password')%>

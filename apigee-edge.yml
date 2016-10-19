@@ -1,0 +1,209 @@
+product:
+  name: Apigee Edge Gateway
+  short_name: apigee-edge-gateway
+  release_name: edge-gateway
+  description: Apigee Edge Gateway
+  bootstrap_version: 4.16.09
+  openjdk_version: 1.8.0_91
+  tile:
+    short_name: apigee-edge-gateway
+    label: Apigee Edge Gateway
+  enabled_groups:
+  - edge
+  - monitoring
+  - baas 
+  #- monetization
+resources:
+- name: openjdk 
+  file: resources/openjdk-1.8.0_91.tar.gz
+- name: apigee_repo
+  file: resources/apigee.tar.gz
+
+stemcell: 
+  name: ubuntu-trusty
+  version: 3232.2
+
+services:
+# no need to specify yum-repo/apigee-mirror, always in services
+#- name: yum-repo
+#  type: apigee-mirror
+- name: zookeeper
+  type: zookeeper
+  group: edge
+- name: cassandra
+  type: cassandra
+  group: edge
+- name: management-server
+  type: management-server
+  group: edge
+- name: postgres-server
+  type: postgres-server
+  group: edge
+- name: qpid-server
+  type: qpid-server
+  group: edge
+- name: usergrid
+  type: usergrid
+  group: baas
+- name: portal
+  type: portal
+  group: baas
+- name: elasticsearch
+  type: elasticsearch
+  group: baas
+- name: influxdb
+  type: influxdb
+  group: monitoring
+
+components:
+- name: apigee-zookeeper
+  uses_single_az: false
+  group: edge
+  profile: zk
+  instances:
+    configurable: false
+    uses_odd_or_zero_instances: true
+    min_instances: 3
+    default_instances: 3   
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: apigee-cassandra
+  uses_single_az: false
+  group: edge
+  profile: c
+  instances:
+    uses_odd_or_zero_instances: true
+    min_instances: 3
+    default_instances: 3
+    configurable: false    
+  persistence:
+    default_persistent_disk: 30720
+    persistent_disk_configurable: true # default true
+- name: edge-management-server
+  uses_single_az: false
+  group: edge
+  profile: ms
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 2
+    default_instances: 2
+    instance_count_configurable: true    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+  sub_components:
+  - edge-ui
+  - apigee-openldap
+- name: edge-router
+  uses_single_az: false
+  group: edge
+  profile: r
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 2
+    default_instances: 2
+    instance_count_configurable: true    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: edge-message-processor
+  uses_single_az: false
+  group: edge
+  profile: mp
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 2
+    default_instances: 2
+    instance_count_configurable: true    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: edge-qpid-server
+  uses_single_az: false
+  group: edge
+  profile: qs
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 2
+    default_instances: 2
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 30720
+    persistent_disk_configurable: true # default true
+  sub_components:
+  - apigee-qpidd
+- name: edge-postgres-server
+  uses_single_az: false
+  group: edge
+  profile: ps
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 2
+    default_instances: 2
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+  sub_components:
+  - apigee-postgresql
+# Special cases that have dependencies/controlled installs  
+- name: baas-usergrid
+  uses_single_az: false
+  group: baas
+  profile: b
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 1
+    default_instances: 1
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: apigee-elasticsearch
+  uses_single_az: false
+  group: baas
+  profile: e
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 1
+    default_instances: 1
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: baas-portal
+  uses_single_az: false
+  group: baas
+  profile: p
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 1
+    default_instances: 1
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+- name: apigee-influxdb
+  uses_single_az: false
+  group: monitoring
+  profile: pp
+  instances:
+    uses_odd_or_zero_instances: false
+    min_instances: 1
+    default_instances: 1
+    instance_count_configurable: false    
+  persistence:
+    default_persistent_disk: 10240
+    persistent_disk_configurable: true # default true
+  sub_components:
+  - apigee-grafana
+
+
+# Update vms
+vm_updates: 
+  canaries: 1                       # Defaults to 1 
+  max_in_flight: 5                  # Defaults to 10 
+  canary_watch_time: "30000-240000" # Default value:  "30000-240000"
+  update_watch_time: "30000-240000" # Default value:  "30000-240000"
+  serial: true                      # Defaults to true

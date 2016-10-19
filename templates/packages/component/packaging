@@ -1,0 +1,7 @@
+# abort script on any command that exits with a non zero value
+set -e
+
+# Copy over the any templates into the BOSH_INSTALL_TARGET directory
+# It would be copied into the /var/vcap/packages/nginx folder
+cp -r openjdk/openjdk-{{product['openjdk_version']}}.tar.gz ${BOSH_INSTALL_TARGET}/
+

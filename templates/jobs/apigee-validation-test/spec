@@ -1,0 +1,29 @@
+---
+name: apigee-validation-test
+templates:
+  init.sh.erb: bin/init.sh
+  pre-start.erb: bin/pre-start
+  silent.conf.erb: config/silent.conf
+  apigee-license.txt.erb: config/conf/apigee-license.txt
+  apigee-validation-test.sh.erb: bin/run
+
+consumes:
+- name: apigee-mirror
+  type: yum-repo
+
+- name: zookeeper
+  type: zookeeper
+
+- name: cassandra
+  type: cassandra
+
+- name: management-server
+  type: management-server
+
+packages:
+- component
+
+properties:
+  component.name:
+    description: 'Apigee service component name'
+    default: apigee-validation-test

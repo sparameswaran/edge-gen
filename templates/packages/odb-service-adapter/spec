@@ -1,8 +1,0 @@
----
-name: odb-service-adapter
-
-dependencies:
-- go
-
-files:
-  - {{ product['name'] }}/**/*
