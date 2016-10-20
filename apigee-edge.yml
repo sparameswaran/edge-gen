@@ -11,15 +11,16 @@ product:
   enabled_groups:
   - edge
   - monitoring
-  - baas 
+  - baas
   #- monetization
-resources:
-- name: openjdk 
-  file: resources/openjdk-1.8.0_91.tar.gz
-- name: apigee_repo
-  file: resources/apigee.tar.gz
 
-stemcell: 
+#resources:
+#- name: openjdk
+#  file: resources/openjdk-1.8.0_91.tar.gz
+#- name: apigee_repo
+#  file: resources/apigee.tar.gz
+
+stemcell:
   name: ubuntu-trusty
   version: 3232.2
 
@@ -64,7 +65,7 @@ components:
     configurable: false
     uses_odd_or_zero_instances: true
     min_instances: 3
-    default_instances: 3   
+    default_instances: 3
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -76,7 +77,7 @@ components:
     uses_odd_or_zero_instances: true
     min_instances: 3
     default_instances: 3
-    configurable: false    
+    configurable: false
   persistence:
     default_persistent_disk: 30720
     persistent_disk_configurable: true # default true
@@ -88,7 +89,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 2
     default_instances: 2
-    instance_count_configurable: true    
+    instance_count_configurable: true
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -103,7 +104,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 2
     default_instances: 2
-    instance_count_configurable: true    
+    instance_count_configurable: true
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -115,7 +116,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 2
     default_instances: 2
-    instance_count_configurable: true    
+    instance_count_configurable: true
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -127,7 +128,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 2
     default_instances: 2
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 30720
     persistent_disk_configurable: true # default true
@@ -141,13 +142,13 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 2
     default_instances: 2
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
   sub_components:
   - apigee-postgresql
-# Special cases that have dependencies/controlled installs  
+# Special cases that have dependencies/controlled installs
 - name: baas-usergrid
   uses_single_az: false
   group: baas
@@ -156,7 +157,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 1
     default_instances: 1
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -168,7 +169,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 1
     default_instances: 1
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -180,7 +181,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 1
     default_instances: 1
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -192,7 +193,7 @@ components:
     uses_odd_or_zero_instances: false
     min_instances: 1
     default_instances: 1
-    instance_count_configurable: false    
+    instance_count_configurable: false
   persistence:
     default_persistent_disk: 10240
     persistent_disk_configurable: true # default true
@@ -201,9 +202,9 @@ components:
 
 
 # Update vms
-vm_updates: 
-  canaries: 1                       # Defaults to 1 
-  max_in_flight: 5                  # Defaults to 10 
+vm_updates:
+  canaries: 1                       # Defaults to 1
+  max_in_flight: 10                 # Defaults to 10
   canary_watch_time: "30000-240000" # Default value:  "30000-240000"
   update_watch_time: "30000-240000" # Default value:  "30000-240000"
   serial: true                      # Defaults to true

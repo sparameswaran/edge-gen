@@ -189,7 +189,7 @@ form_types:
   {% for sub_component in component['sub_components'] %}
   - reference: ".{{component['name']}}.{{ sub_component}}_config_override"
     label: {{sub_component.replace('-', ' ').title()}} Config Overrides
-    description: {{sub_component.replace('-', ' ').title()}} Config Overrides  
+    description: {{sub_component.replace('-', ' ').title()}} Config Overrides
   {% endfor %}
   {% endfor %}
 
@@ -250,7 +250,7 @@ job_types:
   dynamic_ip: 1
   max_in_flight: 1
   errand: false
-  single_az_only: true
+  single_az_only: false
   instance_definition:
     default: 1
     configurable: false
@@ -290,7 +290,7 @@ job_types:
   dynamic_ip: 1
   max_in_flight: 1
   errand: true
-  single_az_only: true
+  single_az_only: false
 
   instance_definition:
     default: 1
@@ -333,7 +333,7 @@ job_types:
       {% if service['group'] == 'edge' or service['group'] in product['enabled_groups'] %}
       {{ service['type'] }}: { from: {{ service['name'] }} }
       {% endif %}
-    {% endfor %}  
+    {% endfor %}
     provides: |
       {{ component['service_type'] }}: { as: {{ component['service_name'] }} }
 
@@ -341,7 +341,7 @@ job_types:
   dynamic_ip: 1
   max_in_flight: 10
   errand: false
-  single_az_only: {{component['uses_single_az']}}
+  single_az_only: {{component['uses_false']}}
   property_blueprints:
   - name: application_config_override
     type: text
@@ -365,13 +365,13 @@ job_types:
       # may_only_be_odd_or_zero: false does not work
       {% if component['instances']['uses_odd_or_zero_instances'] %}
       may_only_be_odd_or_zero: true
-      {% endif %}  
+      {% endif %}
     {% if component['group'] != 'edge' %}
     zero_if:
       property_reference: '.properties.install_{{ component['group'] }}'
       property_values:
       - false
-    {% endif %}  
+    {% endif %}
   resource_definitions:
   - name: ram
     type: integer
